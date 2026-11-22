@@ -10,7 +10,7 @@ To send events, copy `.env.example` to `.env.local`, fill in your React Native p
 
 ## Try it
 
-* **Load slow queue** reads a fixture after a simulated 1.5-second delay. In Sentry, look for the **Load ticket queue** transaction and its **Read fixture** child span.
+* **Load slow queue** reads a fixture after a simulated 4-second delay. In Sentry, look for the **Load ticket queue** transaction and its **Read fixture** child span.
 * **Load invalid response** passes a malformed fixture to the decoder. Look in Issues for **Ticket queue response has an invalid format**.
 * **Cancel load** during the delay exercises the error filter. A user cancellation ends the operation and the SDK drops the cancellation exception.
 
