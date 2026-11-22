@@ -33,7 +33,7 @@ function App() {
           // Wrap the array to simulate a response that violates the decoder’s contract.
           if (invalid) return { tickets };
           await new Promise<void>((resolve, reject) => {
-            const timer = setTimeout(resolve, 1500);
+            const timer = setTimeout(resolve, 4000);
             controller.signal.addEventListener('abort', () => {
               clearTimeout(timer);
               reject(new QueueRequestCancelled('User cancelled queue load'));
