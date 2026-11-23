@@ -18,7 +18,7 @@ function App() {
   const [rows, setRows] = useState<string[]>([]);
   const request = useRef<AbortController | null>(null);
 
-  async function loadQueue(invalid: boolean) {
+  async function loadQueue(mode: 'normal' | 'slow' | 'invalid') {
     // Two quick taps can arrive before React disables the buttons.
     if (request.current) return;
     const controller = new AbortController();
@@ -30,8 +30,9 @@ function App() {
       // Time the whole user action. The child span shows how much time the read consumed.
       const result = await Sentry.startSpan({ name: 'Load ticket queue', op: 'ui.action', forceTransaction: true }, async () => {
         const payload = await Sentry.startSpan({ name: 'Read fixture', op: 'queue.read' }, async () => {
+          if (mode === 'normal') return tickets;
           // Wrap the array to simulate a response that violates the decoder’s contract.
-          if (invalid) return { tickets };
+          if (mode === 'invalid') return { tickets };
           await new Promise<void>((resolve, reject) => {
             const timer = setTimeout(resolve, 4000);
             controller.signal.addEventListener('abort', () => {
@@ -59,8 +60,9 @@ function App() {
       <Text style={styles.title}>Ticket queue</Text>
       <Text style={styles.status}>{message}</Text>
       {rows.map(ticket => <Text key={ticket} style={styles.ticket}>{ticket}</Text>)}
-      <Button title="Load slow queue" disabled={busy} onPress={() => loadQueue(false)} />
-      <Button title="Load invalid response" disabled={busy} onPress={() => loadQueue(true)} />
+      <Button title="Load tickets" disabled={busy} onPress={() => loadQueue('normal')} />
+      <Button title="Load slow queue" disabled={busy} onPress={() => loadQueue('slow')} />
+      <Button title="Load invalid response" disabled={busy} onPress={() => loadQueue('invalid')} />
       {busy && <Button title="Cancel load" onPress={() => request.current?.abort()} />}
       {!hasDsn && <Text style={styles.note}>Local demo · Set the Sentry DSN to send events.</Text>}
     </View>
