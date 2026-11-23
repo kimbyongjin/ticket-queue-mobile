@@ -1,21 +1,53 @@
 import { useRef, useState } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { Button, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Sentry from '@sentry/react-native';
 import { hasDsn, QueueRequestCancelled } from './telemetry';
 
-const tickets = ['Mobile checkout freezes', 'Receipt email delayed'];
+type Ticket = { id: string; title: string; description: string };
 
-function decodeQueue(payload: unknown): string[] {
-  if (!Array.isArray(payload) || !payload.every(item => typeof item === 'string')) {
+const tickets: Ticket[] = [
+  { id: 'checkout', title: 'Mobile checkout freezes', description: 'The checkout spinner keeps turning after I tap Pay on my phone.' },
+  { id: 'receipt', title: 'Receipt email delayed', description: 'My order went through, but the receipt arrived twenty minutes later.' },
+];
+
+function isTicket(value: unknown): value is Ticket {
+  return typeof value === 'object' && value !== null
+    && 'id' in value && typeof value.id === 'string'
+    && 'title' in value && typeof value.title === 'string'
+    && 'description' in value && typeof value.description === 'string';
+}
+
+function decodeQueue(payload: unknown): Ticket[] {
+  if (!Array.isArray(payload) || !payload.every(isTicket)) {
     throw new Error('Ticket queue response has an invalid format');
   }
   return payload;
 }
 
+function TicketRow({ ticket }: { ticket: Ticket }) {
+  // Keep expansion local so opening one ticket preserves the other rows.
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <View style={styles.ticket}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={ticket.title}
+        accessibilityState={{ expanded }}
+        style={styles.ticketHeader}
+        onPress={() => setExpanded(open => !open)}
+      >
+        <Text style={styles.ticketTitle}>{ticket.title}</Text>
+        <Text>{expanded ? '−' : '+'}</Text>
+      </Pressable>
+      {expanded && <Text style={styles.description}>{ticket.description}</Text>}
+    </View>
+  );
+}
+
 function App() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('Ready to load tickets.');
-  const [rows, setRows] = useState<string[]>([]);
+  const [rows, setRows] = useState<Ticket[]>([]);
   const request = useRef<AbortController | null>(null);
 
   async function loadQueue(mode: 'normal' | 'slow' | 'invalid') {
@@ -56,25 +88,28 @@ function App() {
   }
 
   return (
-    <View style={styles.page}>
+    <ScrollView contentContainerStyle={styles.page}>
       <Text style={styles.title}>Ticket queue</Text>
       <Text style={styles.status}>{message}</Text>
-      {rows.map(ticket => <Text key={ticket} style={styles.ticket}>{ticket}</Text>)}
+      {rows.map(ticket => <TicketRow key={ticket.id} ticket={ticket} />)}
       <Button title="Load tickets" disabled={busy} onPress={() => loadQueue('normal')} />
       <Button title="Load slow queue" disabled={busy} onPress={() => loadQueue('slow')} />
       <Button title="Load invalid response" disabled={busy} onPress={() => loadQueue('invalid')} />
       {busy && <Button title="Cancel load" onPress={() => request.current?.abort()} />}
       {!hasDsn && <Text style={styles.note}>Local demo · Set the Sentry DSN to send events.</Text>}
-    </View>
+    </ScrollView>
   );
 }
 
 export default Sentry.wrap(App);
 
 const styles = StyleSheet.create({
-  page: { flex: 1, justifyContent: 'center', padding: 28, gap: 12, backgroundColor: '#f8fafc' },
+  page: { flexGrow: 1, justifyContent: 'center', padding: 28, gap: 12, backgroundColor: '#f8fafc' },
   title: { fontSize: 32, fontWeight: '700', color: '#192739' },
   status: { fontSize: 16, color: '#37485d' },
-  ticket: { padding: 12, backgroundColor: '#ffffff', color: '#192739' },
+  ticket: { backgroundColor: '#ffffff' },
+  ticketHeader: { minHeight: 44, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  ticketTitle: { flex: 1, color: '#192739', fontWeight: '600' },
+  description: { paddingHorizontal: 12, paddingBottom: 12, color: '#37485d' },
   note: { marginTop: 12, fontSize: 14, color: '#526176' },
 });
