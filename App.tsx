@@ -8,6 +8,8 @@ type Ticket = { id: string; title: string; description: string };
 const tickets: Ticket[] = [
   { id: 'checkout', title: 'Mobile checkout freezes', description: 'The checkout spinner keeps turning after I tap Pay on my phone.' },
   { id: 'receipt', title: 'Receipt email delayed', description: 'My order went through, but the receipt arrived twenty minutes later.' },
+  { id: 'cart', title: 'Cart quantity resets', description: 'I changed the quantity from one to three. When I reopened the cart, it showed one again.' },
+  { id: 'tracking', title: 'Tracking link opens a blank page', description: 'I tapped Track shipment in my order history and got a blank page.' },
 ];
 
 function isTicket(value: unknown): value is Ticket {
